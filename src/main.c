@@ -15,7 +15,7 @@ typedef struct DigitChunk {
 	uint8_t memory[DIGIT_CHUNK_CAPACITY]; // NOTE: little endian
 } DigitChunk;
 
-DigitChunk ZeroChunk = {0}; // NOTE: Unused...
+DigitChunk ZeroChunk = {0};
 
 typedef struct {
 	size_t chunk_count;
@@ -141,26 +141,27 @@ Integer integer_add(Integer *a, Integer *b) {
 	DigitChunk *current_b_chunk = b->head;
 	uint8_t carry = 0;
 	for(size_t i = 0; i < max_chunk_count; ++i) {
+		size_t new_chunk_size = 0;
+		uint8_t *digits = NULL;
+
 		if(i < min_chunk_count) {
-			size_t new_chunk_size = 0;
-			uint8_t *digits = (uint8_t *)chunk_add(current_a_chunk, current_b_chunk, carry, &new_chunk_size);
-			if(new_chunk_size > DIGIT_CHUNK_CAPACITY) {
-				assert(new_chunk_size == DIGIT_CHUNK_CAPACITY + 1);
-				carry = digits[new_chunk_size - 1];
-			} else {
-				carry = 0;
-			}
-			DigitChunk *appended_chunk = append_zeroed_chunk(&out);	                  
-			appended_chunk->count = min(DIGIT_CHUNK_CAPACITY, new_chunk_size);        
-			appended_chunk->next = NULL;                                              
-			memcpy(appended_chunk->memory, digits, new_chunk_size * sizeof(*digits)); 
-		} else { // TODO: Is the code below correct? I feel like I'm missing a carry...
-			DigitChunk *chunk_to_copy = (current_a_chunk != NULL) ? current_a_chunk : current_b_chunk;
-			DigitChunk *appended_chunk = append_zeroed_chunk(&out);
-			appended_chunk->next = NULL;
-			appended_chunk->count = chunk_to_copy->count;
-			memcpy(appended_chunk->memory, chunk_to_copy->memory, appended_chunk->count * sizeof(uint8_t));
+			digits = (uint8_t *)chunk_add(current_a_chunk, current_b_chunk, carry, &new_chunk_size);
+		} else {
+			DigitChunk *chunk_to_add = (current_a_chunk != NULL) ? current_a_chunk : current_b_chunk;
+			digits = (uint8_t *)chunk_add(chunk_to_add, &ZeroChunk, carry, &new_chunk_size);
 		}
+
+		if(new_chunk_size > DIGIT_CHUNK_CAPACITY) {
+			assert(new_chunk_size == DIGIT_CHUNK_CAPACITY + 1);
+			carry = digits[new_chunk_size - 1];
+		} else {
+			carry = 0;
+		}
+		DigitChunk *appended_chunk = append_zeroed_chunk(&out);	                  
+		appended_chunk->count = min(DIGIT_CHUNK_CAPACITY, new_chunk_size);        
+		appended_chunk->next = NULL;                                              
+		memcpy(appended_chunk->memory, digits, new_chunk_size * sizeof(*digits)); 
+
 		if(current_a_chunk != NULL) current_a_chunk = current_a_chunk->next;
 		if(current_b_chunk != NULL) current_b_chunk = current_b_chunk->next;
 	}
@@ -173,20 +174,30 @@ Integer integer_add(Integer *a, Integer *b) {
 	return out;
 }
 
-int main(void) {
+void test1(void) { // NOTE: Leaks memory...
 	const char *str1 = "832987473298230000043281476942104327189472819432646328";
 	const char *str2 = "335623382879320043276483204324329843243204328727671132";
-
 	Integer A = integer_from_str((char *)str1, strlen(str1));
 	Integer B = integer_from_str((char *)str2, strlen(str2));
-
 	integer_debug_print(&A);
 	integer_debug_print(&B);
-
 	Integer sum = integer_add(&A, &B);
-
 	integer_debug_print(&sum);
+}
 
-	// NOTE: Leaking memory...
+void test2(void) { // NOTE: Leaks memory...
+	const char *str1 = "999999";
+	const char *str2 = "1";
+	Integer A = integer_from_str((char *)str1, strlen(str1));
+	Integer B = integer_from_str((char *)str2, strlen(str2));
+	integer_debug_print(&A);
+	integer_debug_print(&B);
+	Integer sum = integer_add(&A, &B);
+	integer_debug_print(&sum);
+}
+
+int main(void) {
+	test1();
+	test2();
 	return 0;
 }
