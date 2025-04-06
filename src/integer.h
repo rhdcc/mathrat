@@ -29,5 +29,6 @@ Integer integer_add(Integer *a, Integer *b);
 Integer integer_subtract(Integer *a, Integer *b);
 Integer_Compare_Flag integer_compare(Integer *a, Integer *b);
 void integer_debug_print(Integer *a);
+void integer_free(Integer *a);
 
 #endif // INTEGER_H
