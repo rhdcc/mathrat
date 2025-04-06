@@ -64,6 +64,9 @@ Integer integer_from_str(char *str, size_t string_size) {
 }
 
 void integer_debug_print(Integer *a) {
+	if(a->is_negative) {
+		printf("-");
+	}
 	DigitChunk *chunk = a->head;
 	for(size_t chunk_counter = 0; chunk_counter < a->chunk_count; ++chunk_counter) {
 		assert(chunk != NULL && "[ERROR]: Integer DigitChunk is NULL!");
@@ -71,12 +74,7 @@ void integer_debug_print(Integer *a) {
 			printf("%d", (unsigned int)chunk->memory[i]);
 		}
 		chunk = chunk->next;
-		printf(" ");
 	}
-	if(a->is_negative) {
-		printf("(-)");
-	}
-	printf("\n");
 }
 
 Integer_Compare_Flag integer_compare(Integer *a, Integer *b) {
@@ -179,7 +177,7 @@ static bool chunk_subtract(DigitChunk *a, DigitChunk *b, bool must_take, bool *i
 		uint8_t b_digit = (i < b->count) ? b->memory[i] : 0;
 		if(must_take) {
 			// We need to take 1 (ONE!) from this difference...
-			// either add 1 to b_digit, OR subtract 1 from a_digit (not doing this...)
+			// add 1 to b_digit
 			b_digit += 1;
 		}
 
@@ -270,4 +268,13 @@ Integer integer_subtract(Integer *a, Integer *b) {
 
 	assert(must_take == false && "[ERROR]: Result of subtraction is negative!");
 	return out;
+}
+
+void integer_free(Integer *a) {
+    DigitChunk *node = a->head;
+    while(node != NULL) {
+        DigitChunk *to_free = node;
+        node = node->next;
+        free(to_free);
+    }
 }

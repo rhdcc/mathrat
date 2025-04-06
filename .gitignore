@@ -1,1 +1,5 @@
 bin/
+src/tests/bin/
+src/tests/tests_raw.txt
+src/tests/tests.c
+src/tests/*.py
