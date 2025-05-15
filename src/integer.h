@@ -1,7 +1,8 @@
 #ifndef INTEGER_H
 #define INTEGER_H
 
-#include <stdint.h>
+#include <stdint.h> // uint8_t
+#include <stddef.h> // size_t
 
 #define DIGIT_CHUNK_CAPACITY 5
 

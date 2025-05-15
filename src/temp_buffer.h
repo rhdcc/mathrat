@@ -1,7 +1,8 @@
 #ifndef TEMP_BUFFER_H
 #define TEMP_BUFFER_H
 
-#include <stdint.h>
+#include <stdint.h> // uint8_t
+#include <stddef.h> // size_t
 
 #define TEMP_BUFFER_CAPACITY 1024
 extern uint8_t temp_buffer[TEMP_BUFFER_CAPACITY];
