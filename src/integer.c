@@ -103,9 +103,23 @@ Integer_Compare_Flag integer_compare(Integer *a, Integer *b) {
 	return INTEGER_CMP_EQUAL;
 }
 
+static size_t size_min(size_t a, size_t b) {
+	if(a <= b) {
+		return a;
+	}
+	return b;
+}
+
+static size_t size_max(size_t a, size_t b) {
+	if(a >= b) {
+		return a;
+	}
+	return b;
+}
+
 static void chunk_add(DigitChunk *a, DigitChunk *b, uint8_t old_carry) {
 	uint8_t carry = old_carry;
-	for(size_t i = 0; i < max(a->count, b->count); ++i) {
+	for(size_t i = 0; i < size_max(a->count, b->count); ++i) {
 		uint8_t digit_a = (i >= a->count) ? 0 : a->memory[i];
 		uint8_t digit_b = (i >= b->count) ? 0 : b->memory[i];
 		uint8_t sum = carry + digit_a + digit_b;
@@ -129,8 +143,8 @@ Integer integer_add(Integer *a, Integer *b) {
 		out.is_negative = 1;
 	}
 
-	size_t min_chunk_count = min(a->chunk_count, b->chunk_count);
-	size_t max_chunk_count = max(a->chunk_count, b->chunk_count);
+	size_t min_chunk_count = size_min(a->chunk_count, b->chunk_count);
+	size_t max_chunk_count = size_max(a->chunk_count, b->chunk_count);
 	DigitChunk *current_a_chunk = a->head;
 	DigitChunk *current_b_chunk = b->head;
 	uint8_t carry = 0;
@@ -151,7 +165,7 @@ Integer integer_add(Integer *a, Integer *b) {
 			carry = 0;
 		}
 		DigitChunk *appended_chunk = append_zeroed_chunk(&out);
-		appended_chunk->count = min(DIGIT_CHUNK_CAPACITY, chunk_size);
+		appended_chunk->count = size_min(DIGIT_CHUNK_CAPACITY, chunk_size);
 		appended_chunk->next = NULL;
 		memcpy(appended_chunk->memory, digits, chunk_size * sizeof(*digits));
 
@@ -169,7 +183,7 @@ Integer integer_add(Integer *a, Integer *b) {
 
 static bool chunk_subtract(DigitChunk *a, DigitChunk *b, bool must_take, bool *is_zero, size_t *chunk_size) {
 	*is_zero = true;
-	size_t max_digit_count = max(a->count, b->count);
+	size_t max_digit_count = size_max(a->count, b->count);
 	size_t zero_count = 0;
 	*chunk_size = 0;
 	for(size_t i = 0; i < max_digit_count; ++i) {
@@ -214,7 +228,7 @@ Integer integer_subtract(Integer *a, Integer *b) {
 		out.is_negative = 1;
 	}
 
-	size_t max_chunk_count = max(a->chunk_count, b->chunk_count);
+	size_t max_chunk_count = size_max(a->chunk_count, b->chunk_count);
 	bool must_take = false;
 
 	DigitChunk *current_a_chunk = first_sub_arg->head;
