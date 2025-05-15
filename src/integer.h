@@ -26,8 +26,11 @@ typedef enum Integer_Compare_Flag {
 } Integer_Compare_Flag;
 
 Integer integer_from_str(char *str, size_t string_size);
+Integer integer_add_ex(Integer *a, Integer *b, int a_negative, int b_negative);
+Integer integer_subtract_ex(Integer *a, Integer *b, int a_negative, int b_negative);
 Integer integer_add(Integer *a, Integer *b);
 Integer integer_subtract(Integer *a, Integer *b);
+Integer_Compare_Flag integer_compare_ex(Integer *a, Integer *b, int a_negative, int b_negative);
 Integer_Compare_Flag integer_compare(Integer *a, Integer *b);
 void integer_debug_print(Integer *a);
 void integer_free(Integer *a);

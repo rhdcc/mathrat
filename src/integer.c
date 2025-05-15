@@ -77,9 +77,9 @@ void integer_debug_print(Integer *a) {
 	}
 }
 
-Integer_Compare_Flag integer_compare(Integer *a, Integer *b) {
-	if(a->is_negative != b->is_negative) {
-		return b->is_negative;
+Integer_Compare_Flag integer_compare_ex(Integer *a, Integer *b, int a_negative, int b_negative) {
+	if(a_negative != b_negative) {
+		return b_negative;
 	}
 	if(a->chunk_count != b->chunk_count) {
 		return ((a->chunk_count > b->chunk_count) + a->is_negative) % 2;
@@ -101,6 +101,11 @@ Integer_Compare_Flag integer_compare(Integer *a, Integer *b) {
 		current_b_chunk = (current_b_chunk != NULL) ? current_b_chunk->next : NULL;
 	}
 	return INTEGER_CMP_EQUAL;
+}
+
+
+Integer_Compare_Flag integer_compare(Integer *a, Integer *b) {
+	return integer_compare_ex(a, b, a->is_negative, b->is_negative);
 }
 
 static size_t size_min(size_t a, size_t b) {
@@ -133,13 +138,19 @@ static void chunk_add(DigitChunk *a, DigitChunk *b, uint8_t old_carry) {
 }
 
 Integer integer_add(Integer *a, Integer *b) {
+	return integer_add_ex(a, b, a->is_negative, b->is_negative);
+}
+
+Integer integer_add_ex(Integer *a, Integer *b, int a_negative, int b_negative) {
 	assert(a->head != NULL && "[ERROR]: First integer operand for '+' has no digits!");
 	assert(b->head != NULL && "[ERROR]: Second integer operand for '+' has no digits!");
 
 	Integer out = {0};
-	if(a->is_negative != b->is_negative) {
-		return integer_subtract(a, b);
-	} else if(a->is_negative == 1 && b->is_negative == 1) {
+	if(a_negative && !b_negative) {
+		return integer_subtract_ex(b, a, 0, 0);
+	} else if(!a_negative && b_negative) {
+		return integer_subtract_ex(a, b, 0, 0);
+	} else if(a->is_negative && b->is_negative) {
 		out.is_negative = 1;
 	}
 
@@ -216,6 +227,10 @@ static bool chunk_subtract(DigitChunk *a, DigitChunk *b, bool must_take, bool *i
 }
 
 Integer integer_subtract(Integer *a, Integer *b) {
+	return integer_subtract_ex(a, b, a->is_negative, b->is_negative);
+}
+
+Integer integer_subtract_ex(Integer *a, Integer *b, int a_negative, int b_negative) {
 	assert(a->head != NULL && "[ERROR]: First integer operand for '-' has no digits!");
 	assert(b->head != NULL && "[ERROR]: Second integer operand for '-' has no digits!");
 
