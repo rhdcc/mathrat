@@ -108,7 +108,7 @@ void test(int type, char *sva, size_t size_a, char *svb, size_t size_b, char *sv
     Integer b = integer_from_str(svb, size_b);\n\
     printf(\"=> \");\n\
     integer_debug_print(&a);\n\
-    printf(\" + \");\n\
+    printf(\" %s \", type ? \"+\" : \"-\");\n\
     integer_debug_print(&b);\n\
     printf(\" = ??\\n\");\n\
 \n\
