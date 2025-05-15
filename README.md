@@ -16,3 +16,9 @@ Run
 > nmake /Fwindows.mak
 > bin\mrat.exe
 ```
+
+### On Linux
+```console
+$ make
+$ bin/mrat
+```
