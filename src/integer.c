@@ -9,10 +9,11 @@
 
 DigitChunk ZeroChunk = {0};
 
-static DigitChunk *append_zeroed_chunk(Integer *a) {
+static DigitChunk *append_almost_zeroed_chunk(Integer *a) {
 	if(a->head == NULL) {
 		a->head = (DigitChunk *)malloc(sizeof(DigitChunk));
 		memset(a->head, 0, sizeof(*a->head));
+		a->tail = a->head;
 		a->chunk_count += 1;
 		return a->head;
 	}
@@ -22,11 +23,13 @@ static DigitChunk *append_zeroed_chunk(Integer *a) {
 	}
 	chunk->next = (DigitChunk *)malloc(sizeof(DigitChunk));
 	memset(chunk->next, 0, sizeof(*chunk->next));
+	chunk->next->prev = chunk; // NOTE: The 'almost' refers to this line and below
+	a->tail = a->tail->next;
 	a->chunk_count += 1;
 	return chunk->next;
 }
 
-Integer integer_from_str(char *str, size_t string_size) {
+Integer integer_from_str(char *str, size_t string_size) { // TODO: Use 'append_almost_zeroed_chunk'
 	// TODO: Handle -0...
 	assert(string_size >= 1 && "[ERROR]: String size must be at least 1");
 	Integer out = {0};
@@ -40,6 +43,8 @@ Integer integer_from_str(char *str, size_t string_size) {
 	DigitChunk *prev_chunk = NULL;
 	while(i_offset < string_size) {
 		DigitChunk *current_chunk = (DigitChunk *)malloc(sizeof(*current_chunk));
+		current_chunk->prev = NULL;
+
 		if(i_offset == 0) {
 			out.head = current_chunk;
 		}
@@ -54,12 +59,14 @@ Integer integer_from_str(char *str, size_t string_size) {
 		assert(i - i_offset > 0 && "[ERROR]: Num bytes written to chunk must be at least 1");
 		current_chunk->count = i - i_offset;
 		if(prev_chunk) {
+			current_chunk->prev = prev_chunk;
 			prev_chunk->next = current_chunk;
 		}
 		prev_chunk = current_chunk;
 		out.chunk_count += 1;
 		i_offset = i;
 	}
+	out.tail = prev_chunk;
 	return out;
 }
 
@@ -67,13 +74,13 @@ void integer_debug_print(Integer *a) {
 	if(a->is_negative) {
 		printf("-");
 	}
-	DigitChunk *chunk = a->head;
+	DigitChunk *chunk = a->tail;
 	for(size_t chunk_counter = 0; chunk_counter < a->chunk_count; ++chunk_counter) {
 		assert(chunk != NULL && "[ERROR]: Integer DigitChunk is NULL!");
 		for(size_t i = 0; i < chunk->count; ++i) {
-			printf("%d", (unsigned int)chunk->memory[i]);
+			printf("%d", (unsigned int)chunk->memory[chunk->count - 1 - i]);
 		}
-		chunk = chunk->next;
+		chunk = chunk->prev;
 	}
 }
 
@@ -102,7 +109,6 @@ Integer_Compare_Flag integer_compare_ex(Integer *a, Integer *b, int a_negative, 
 	}
 	return INTEGER_CMP_EQUAL;
 }
-
 
 Integer_Compare_Flag integer_compare(Integer *a, Integer *b) {
 	return integer_compare_ex(a, b, a->is_negative, b->is_negative);
@@ -175,7 +181,7 @@ Integer integer_add_ex(Integer *a, Integer *b, int a_negative, int b_negative) {
 		} else {
 			carry = 0;
 		}
-		DigitChunk *appended_chunk = append_zeroed_chunk(&out);
+		DigitChunk *appended_chunk = append_almost_zeroed_chunk(&out);
 		appended_chunk->count = size_min(DIGIT_CHUNK_CAPACITY, chunk_size);
 		appended_chunk->next = NULL;
 		memcpy(appended_chunk->memory, digits, chunk_size * sizeof(*digits));
@@ -184,7 +190,7 @@ Integer integer_add_ex(Integer *a, Integer *b, int a_negative, int b_negative) {
 		if(current_b_chunk != NULL) current_b_chunk = current_b_chunk->next;
 	}
 	if(carry != 0) {
-		DigitChunk *appended_chunk = append_zeroed_chunk(&out);
+		DigitChunk *appended_chunk = append_almost_zeroed_chunk(&out);
 		appended_chunk->next = NULL;
 		appended_chunk->count = 1;
 		memcpy(appended_chunk->memory, &carry, sizeof(carry));
@@ -268,12 +274,12 @@ Integer integer_subtract_ex(Integer *a, Integer *b, int a_negative, int b_negati
 		} else {
 			// append 'num_zero_chunks' zeroed chunks...
 			for(size_t j = 0; j < num_zero_chunks; ++j) {
-				DigitChunk *zchunk = append_zeroed_chunk(&out);
+				DigitChunk *zchunk = append_almost_zeroed_chunk(&out);
 				zchunk->count = DIGIT_CHUNK_CAPACITY;
 			}
 
 			// do the copy from the temp buffer into the DigitChunk...
-			DigitChunk *appended_chunk = append_zeroed_chunk(&out);
+			DigitChunk *appended_chunk = append_almost_zeroed_chunk(&out);
 			appended_chunk->count = scratch_size;
 			memcpy(appended_chunk->memory, scratch_buffer, scratch_size);
 
@@ -288,7 +294,7 @@ Integer integer_subtract_ex(Integer *a, Integer *b, int a_negative, int b_negati
 	}
 
 	if(last_chunk == NULL) {
-		last_chunk = append_zeroed_chunk(&out);
+		last_chunk = append_almost_zeroed_chunk(&out);
 		last_chunk->count = 1;
 		out.is_negative = 0;
 	} else {
@@ -300,10 +306,12 @@ Integer integer_subtract_ex(Integer *a, Integer *b, int a_negative, int b_negati
 }
 
 void integer_free(Integer *a) {
-    DigitChunk *node = a->head;
+	DigitChunk *node = a->head;
     while(node != NULL) {
         DigitChunk *to_free = node;
         node = node->next;
         free(to_free);
     }
+	a->head = NULL;
+	a->tail = NULL;
 }

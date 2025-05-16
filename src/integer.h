@@ -10,6 +10,7 @@ typedef struct DigitChunk DigitChunk;
 typedef struct DigitChunk {
 	size_t count;
 	DigitChunk *next;
+	DigitChunk *prev;
 	uint8_t memory[DIGIT_CHUNK_CAPACITY]; // NOTE: little endian
 } DigitChunk;
 
@@ -17,6 +18,7 @@ typedef struct {
 	int is_negative;
 	size_t chunk_count;
 	DigitChunk *head;
+	DigitChunk *tail;
 } Integer;
 
 typedef enum Integer_Compare_Flag {
