@@ -119,7 +119,6 @@ void test(int type, char *sva, size_t size_a, char *svb, size_t size_b, char *sv
     Integer out = (type) ? integer_add(&a, &b) : integer_subtract(&a, &b); \n\
     printf(\"    Actual:   \");\n\
     integer_debug_print(&out);\n\
-    printf(\" (backwards)\");\n\
     printf(\"\\n    Expected: %s\\n\\n\", temp);\n\
 \n\
     integer_free(&out);\n\
