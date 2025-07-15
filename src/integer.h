@@ -32,6 +32,7 @@ Integer integer_add_ex(Integer *a, Integer *b, int a_negative, int b_negative);
 Integer integer_subtract_ex(Integer *a, Integer *b, int a_negative, int b_negative);
 Integer integer_add(Integer *a, Integer *b);
 Integer integer_subtract(Integer *a, Integer *b);
+Integer int_int_mul(Integer *a, Integer *b);
 Integer_Compare_Flag integer_compare_ex(Integer *a, Integer *b, int a_negative, int b_negative);
 Integer_Compare_Flag integer_compare(Integer *a, Integer *b);
 void integer_debug_print(Integer *a);

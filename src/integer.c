@@ -305,6 +305,101 @@ Integer integer_subtract_ex(Integer *a, Integer *b, int a_negative, int b_negati
     return out;
 }
 
+static uint8_t chunk_digit_mul(DigitChunk *a, uint8_t digit, uint8_t old_carry) {
+    uint8_t carry = old_carry;
+    for(size_t i = 0; i < a->count; ++i) {
+        uint8_t product = digit * a->memory[i] + carry;
+        uint8_t out_digit = product % 10;
+        carry = (product - out_digit) / 10;
+        tmp_push(&out_digit, sizeof(out_digit));
+    }
+    return carry;
+}
+
+static Integer int_digit_mul(Integer *a, uint8_t digit, size_t pad) {
+    Integer out = {0};
+    for(size_t i = 0; i < pad / DIGIT_CHUNK_CAPACITY; ++i) {
+        DigitChunk *zchunk = append_almost_zeroed_chunk(&out);
+        zchunk->count = DIGIT_CHUNK_CAPACITY;
+    }
+    DigitChunk *zchunk = append_almost_zeroed_chunk(&out);
+    zchunk->count = pad % DIGIT_CHUNK_CAPACITY;
+    uint8_t carry = 0;
+    size_t count_of_last = out.tail->count;
+    for(DigitChunk *c = a->head; c != NULL; c = c->next) {
+        uint8_t *scratch = tmp_start_scratch();
+        carry = chunk_digit_mul(c, digit, carry);
+        size_t scratch_size = tmp_end_scratch();
+        assert(scratch_size <= DIGIT_CHUNK_CAPACITY && "Scratch buffer size exceeds max chunk size");
+        if(count_of_last < DIGIT_CHUNK_CAPACITY) { // split, allocating new chunk may not be necessary
+            size_t available_space = DIGIT_CHUNK_CAPACITY - count_of_last;
+            if(scratch_size <= available_space) { // no allocation needed
+                memcpy(out.tail->memory + count_of_last, scratch, scratch_size);
+                out.tail->count += scratch_size;
+            } else { // allocation needed
+                out.tail->count = DIGIT_CHUNK_CAPACITY;
+                memcpy(out.tail->memory + count_of_last, scratch, available_space);
+                DigitChunk *new_chunk = append_almost_zeroed_chunk(&out);
+                new_chunk->count = scratch_size - available_space;
+                memcpy(new_chunk->memory, scratch + available_space, new_chunk->count);
+            }
+        } else { // no split needed, allocation is necessary
+            DigitChunk *chunk_product = append_almost_zeroed_chunk(&out);
+            chunk_product->count = scratch_size;
+            memcpy(chunk_product->memory, scratch, chunk_product->count);
+        }
+        count_of_last = out.tail->count;
+    }
+    if(carry != 0) {
+        if(out.tail->count < DIGIT_CHUNK_CAPACITY) {
+            out.tail->memory[out.tail->count] = carry;
+            out.tail->count += 1;
+        } else {
+            DigitChunk *last_chunk = append_almost_zeroed_chunk(&out);
+            last_chunk->count = 1;
+            last_chunk->memory[0] = carry;
+        }
+    }
+    return out;
+}
+
+Integer int_int_mul(Integer *a, Integer *b) {
+    assert(b->chunk_count >= 1);
+    Integer zinteger = {0};
+    DigitChunk *zchunk = append_almost_zeroed_chunk(&zinteger);
+    zchunk->count = 1;
+    if(
+        (a->chunk_count == 1 && a->head->count == 1 && a->head->memory[0] == 0) ||
+        (b->chunk_count == 1 && b->head->count == 1 && b->head->memory[0] == 0)
+    ) {
+        return zinteger;
+    }
+    DigitChunk *b_chunk = b->head;
+    Integer summands[2] = {0};
+    summands[0] = zinteger;
+    size_t b_digit_count = b->tail->count + (b->chunk_count - 1) * DIGIT_CHUNK_CAPACITY;
+    size_t local_index = 0;
+    for(size_t b_digit_index = 0; b_digit_index < b_digit_count; ++b_digit_index) {
+        if(local_index >= DIGIT_CHUNK_CAPACITY) {
+            local_index = 0;
+            b_chunk = b_chunk->next;
+        }
+        uint8_t digit = b_chunk->memory[local_index];
+        summands[1] = int_digit_mul(a, digit, b_digit_index);
+        Integer sum = integer_add(&(summands[0]), &(summands[1]));
+        integer_free(&(summands[0]));
+        integer_free(&(summands[1]));
+        summands[0] = sum;
+        local_index += 1;
+    }
+    if(a->is_negative == b->is_negative) {
+        summands[0].is_negative = 0;
+    } else {
+        summands[0].is_negative = 1;
+    }
+    return summands[0];
+}
+
 void integer_free(Integer *a) {
     DigitChunk *node = a->head;
     while(node != NULL) {
